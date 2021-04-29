@@ -1,0 +1,8 @@
+Darknet to ONNX
+python demo_darknet2onnx.py yolov4.cfg yolov4.weights ./data/giraffe.jpg 1
+
+
+ONNX To TRT
+sudo ./trtexec --onnx=/home/ajithbalakrishnan/vijnalabs/My_Learning/my_workspace/pytorch-YOLOv4/yolov4_1_3_416_416_static.onnx --explicitBatch --saveEngine=yolov4_1_3_416_416_fp16.engine --workspace=1024 --fp16
+
+/usr/src/tensorrt/bin/trtexec --onnx=/home/ajithbalakrishnan/vijnalabs/My_Learning/my_workspace/pytorch-YOLOv4/yolov4_1_3_416_416_static.onnx --explicitBatch --saveEngine=yolov4_1_3_416_416_fp16.engine --workspace=2048 --fp16
