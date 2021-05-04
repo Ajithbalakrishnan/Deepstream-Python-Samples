@@ -80,5 +80,18 @@ Please refer to DeepStream plugin document for more information about plugin opt
 ## 5. Run the sample ##
 
 ```sh
-  $ deepstream-app -c deepstream_app_config_yoloV4.txt
+  $ sudo deepstream-app -c deepstream_app_config_yoloV4.txt
+```
+
+## Python Version ##
+
+```sh
+  $ python3 test_3.py /dev/video0 /dev/video1
+```
+Try the below commands to list the camera details
+
+```sh
+  $ v4l2-ctl -D --device /dev/video2 --list-formats-ext
+  $ v4l2-ctl --list-devices --list-formats
+  $ v4l2-ctl --list-formats-ext --device /dev/video0
 ```
