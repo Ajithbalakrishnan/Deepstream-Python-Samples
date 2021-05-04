@@ -70,6 +70,10 @@ Please refer to DeepStream plugin document for more information about plugin opt
 - [tracker]
   - tracker-width
   - tracker-height
+A demo Trt model converted from yolov4-tiny version: 
+
+Make sure to use number of sources should be equal to batch size. According to this only we have to convert in to ONNX. 
+Try my repo: https://github.com/Ajithbalakrishnan/Deepstream-Python-Samples/tree/main/DeepStream_Yolo_V4 for further details.
 
 Please refer to DeepStream plugin document for more information about plugin options
 
