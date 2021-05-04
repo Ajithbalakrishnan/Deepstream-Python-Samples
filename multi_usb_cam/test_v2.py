@@ -25,13 +25,13 @@ PGIE_CLASS_ID_VEHICLE = 0
 PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
 PGIE_CLASS_ID_ROADSIGN = 3
-MUXER_OUTPUT_WIDTH=1920
-MUXER_OUTPUT_HEIGHT=1080
+MUXER_OUTPUT_WIDTH=640
+MUXER_OUTPUT_HEIGHT=480
 MUXER_BATCH_TIMEOUT_USEC=4000000
 TILED_OUTPUT_WIDTH=1280
 TILED_OUTPUT_HEIGHT=720
 GST_CAPS_FEATURES_NVMM="memory:NVMM"
-OSD_PROCESS_MODE= 0
+OSD_PROCESS_MODE= 2
 OSD_DISPLAY_TEXT= 0
 pgie_classes_str= ["Vehicle", "TwoWheeler", "Person","RoadSign"]
 
@@ -164,6 +164,7 @@ def create_source_bin(index,uri):
         usb_cam_source=Gst.ElementFactory.make("v4l2src", "source")
         usb_cam_source.set_property("device",uri)
 
+       #nvvideo4linux2
 
 
         caps_v4l2src = Gst.ElementFactory.make("capsfilter", "v4l2src_caps")
@@ -175,18 +176,22 @@ def create_source_bin(index,uri):
         if not vidconvsrc:
             sys.stderr.write(" Unable to create videoconvert \n")
         
-##  v4l2src >> caps_v4l2src(capsfilter) >> vidconvsrc(videoconvert) >> nvvidconvsrc(nvvideoconvert) >> caps_vidconvsrc(capsfilter)
+       ##  v4l2src >> caps_v4l2src(capsfilter) >> vidconvsrc(videoconvert) >> nvvidconvsrc(nvvideoconvert) >> caps_vidconvsrc(capsfilter)
 
         nvvidconvsrc = Gst.ElementFactory.make("nvvideoconvert", "convertor_src2")
         if not nvvidconvsrc:
             sys.stderr.write(" Unable to create Nvvideoconvert \n")
-        
+
+        nvvidconvsrc.set_property('compute-hw', 2)
+        nvvidconvsrc.set_property('output-buffers', 8)
+
         caps_vidconvsrc = Gst.ElementFactory.make("capsfilter", "nvmm_caps")
         if not caps_vidconvsrc:
             sys.stderr.write(" Unable to create capsfilter \n")
             
         caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=30/1"))
         caps_vidconvsrc.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM), format=NV12"))
+                                                                  
 
         print('adding element to source bin')
         Gst.Bin.add(nbin,usb_cam_source)
@@ -238,7 +243,7 @@ def main(args):
     print("Creating streamux \n ")
 
     # Create nvstreammux instance to form batches from one or more sources.
-    streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
+    streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")#The Gst-nvstreammux plugin forms a batch of frames from multiple input sources.
     if not streammux:
         sys.stderr.write(" Unable to create NvStreamMux \n")
 
@@ -271,23 +276,25 @@ def main(args):
     pipeline.add(queue4)
     pipeline.add(queue5)
     print("Creating Pgie \n ")
-    pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")
+    pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")  # Inference pluggin
     if not pgie:
         sys.stderr.write(" Unable to create pgie \n")
     print("Creating tiler \n ")
-    tiler=Gst.ElementFactory.make("nvmultistreamtiler", "nvtiler")
+    tiler=Gst.ElementFactory.make("nvmultistreamtiler", "nvtiler") #The Gst-nvmultistreamtiler plugin composites a 2D tile from batched buffers. 
     if not tiler:
         sys.stderr.write(" Unable to create tiler \n")
+    
     print("Creating nvvidconv \n ")
-    nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor")
+    nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor") #This plugin performs video color format conversion. 
     if not nvvidconv:
         sys.stderr.write(" Unable to create nvvidconv \n")
     print("Creating nvosd \n ")
-    nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
+    nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")    #This plugin draws bounding boxes, text, and region of interest (RoI) polygons.
     if not nvosd:
         sys.stderr.write(" Unable to create nvosd \n")
     nvosd.set_property('process-mode',OSD_PROCESS_MODE)
     nvosd.set_property('display-text',OSD_DISPLAY_TEXT)
+    
     if(is_aarch64()):
         print("Creating transform \n ")
         transform=Gst.ElementFactory.make("nvegltransform", "nvegl-transform")
@@ -295,19 +302,21 @@ def main(args):
             sys.stderr.write(" Unable to create transform \n")
 
     print("Creating EGLSink \n")
+    
     sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
     if not sink:
         sys.stderr.write(" Unable to create egl sink \n")
 
-    # if is_live:
-    #     print("Atleast one of the sources is live")
-    #     streammux.set_property('live-source', 1)
 
-    streammux.set_property('width', 1920)
-    streammux.set_property('height', 1080)
+    streammux.set_property('live-source', 1)
+    streammux.set_property('width', 640)
+    streammux.set_property('height', 480)
     streammux.set_property('batch-size', number_sources)
-    streammux.set_property('batched-push-timeout', 4000000)
-    pgie.set_property('config-file-path', "dstest3_pgie_config.txt")
+    streammux.set_property('nvbuf-memory-type', 4)      
+    streammux.set_property('batched-push-timeout', 1/30)  
+    streammux.set_property('buffer-pool-size', 8)
+
+    pgie.set_property('config-file-path', "config_infer_primary_yoloV4.txt")
     pgie_batch_size=pgie.get_property("batch-size")
     if(pgie_batch_size != number_sources):
         print("WARNING: Overriding infer-config batch-size",pgie_batch_size," with number of sources ", number_sources," \n")
@@ -318,6 +327,8 @@ def main(args):
     tiler.set_property("columns",tiler_columns)
     tiler.set_property("width", TILED_OUTPUT_WIDTH)
     tiler.set_property("height", TILED_OUTPUT_HEIGHT)
+    tiler.set_property("nvbuf-memory-type", 4)
+    
     sink.set_property("qos",0)
     sink.set_property('sync', False)
 

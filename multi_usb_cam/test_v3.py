@@ -45,8 +45,8 @@ PGIE_CLASS_ID_VEHICLE = 0
 PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
 PGIE_CLASS_ID_ROADSIGN = 3
-MUXER_OUTPUT_WIDTH=1920
-MUXER_OUTPUT_HEIGHT=1080
+MUXER_OUTPUT_WIDTH=640
+MUXER_OUTPUT_HEIGHT=480
 MUXER_BATCH_TIMEOUT_USEC=4000000
 TILED_OUTPUT_WIDTH=1920
 TILED_OUTPUT_HEIGHT=1080
@@ -246,6 +246,7 @@ def main(args):
     for i in range(0,len(args)-1):
         fps_streams["stream{0}".format(i)]=GETFPS(i)
     number_sources=len(args)-1
+    print("number_sources : ",number_sources)
 
     # Standard GStreamer initialization
     GObject.threads_init()
@@ -314,11 +315,11 @@ def main(args):
     if not sink:
         sys.stderr.write(" Unable to create egl sink \n")
 
-    streammux.set_property('width', 1920)
-    streammux.set_property('height', 1080)
+    streammux.set_property('width', 640)
+    streammux.set_property('height', 480)
     streammux.set_property('batch-size', number_sources)
     streammux.set_property('batched-push-timeout', 4000000)
-    pgie.set_property('config-file-path', "dstest3_pgie_config.txt")
+    pgie.set_property('config-file-path', "config_infer_primary_yoloV4.txt")
     pgie_batch_size=pgie.get_property("batch-size")
     sink.set_property("qos",0)
     sink.set_property('sync', False)
