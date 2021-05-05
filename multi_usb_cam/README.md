@@ -95,3 +95,5 @@ Try the below commands to list the camera details
   $ v4l2-ctl --list-devices --list-formats
   $ v4l2-ctl --list-formats-ext --device /dev/video0
 ```
+
+Sample models can be download from :https://drive.google.com/drive/folders/1zFD4eaQdDyWswjFa5kz592TZWpPR7bT9?usp=sharing
